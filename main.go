@@ -25,8 +25,8 @@ var _ Node = (*TSSelector)(nil)
 type TSSelector struct {
 	Name     string
 	Labels   []Label
-	Duration string // 可选, 比如5m
-	Offset   string // 可选，比如offset 5m
+	duration string // 可选, 比如5m
+	offset   string // 可选，比如offset 5m
 }
 
 func (m TSSelector) String() string {
@@ -45,11 +45,11 @@ func (m TSSelector) Self() string {
 		}
 		s += fmt.Sprintf("{%s}", strings.Join(labelStrings, ", "))
 	}
-	if m.Duration != "" {
-		s += fmt.Sprintf("[%s]", m.Duration)
+	if m.duration != "" {
+		s += fmt.Sprintf("[%s]", m.duration)
 	}
-	if m.Offset != "" {
-		s += fmt.Sprintf(" offset %s", m.Offset)
+	if m.offset != "" {
+		s += fmt.Sprintf(" offset %s", m.offset)
 	}
 	return s
 }
@@ -64,12 +64,12 @@ func (m TSSelector) WithLabels(labels ...Label) TSSelector {
 }
 
 func (m TSSelector) WithDuration(duration string) TSSelector {
-	m.Duration = duration
+	m.duration = duration
 	return m
 }
 
 func (m TSSelector) WithOffset(offset string) TSSelector {
-	m.Offset = offset
+	m.offset = offset
 	return m
 }
 
@@ -85,171 +85,192 @@ func (l Label) Stringer() string {
 
 // 函数， 比如 rate
 type Func struct {
-	Fun        string
-	Parameters []Node // 长度不定， 1， 2，等
+	fun        string
+	parameters []Node // 长度不定， 1， 2，等
+}
+
+func NewFunc(fun string, parameters ...Node) Func {
+	return Func{fun: fun, parameters: parameters}
 }
 
 func (f Func) WithParameters(params ...Node) Func {
-	f.Parameters = append(f.Parameters, params...)
+	f.parameters = append(f.parameters, params...)
 	return f
 }
 
 var _ Node = (*Func)(nil)
 
 func (f Func) String() string {
-	params := make([]string, 0, len(f.Parameters))
-	for _, p := range f.Parameters {
+	params := make([]string, 0, len(f.parameters))
+	for _, p := range f.parameters {
 		params = append(params, p.String())
 	}
 	return fmt.Sprintf("%s(%s)", f.Self(), strings.Join(params, ", "))
 }
 
 func (f Func) Self() string {
-	return f.Fun
+	return f.fun
 }
 
 func (f Func) Children() []Node {
-	return f.Parameters
+	return f.parameters
 }
 
 // 二元操作符
 type BinaryOp struct {
-	Operator string         // + - * / == != > < >= <= and or unless
-	Operands []Node         // 长度为2
-	Matcher  *VectorMatcher // 可选
+	operator string         // + - * / == != > < >= <= and or unless
+	operands []Node         // 长度为2
+	matcher  *VectorMatcher // 可选
+}
+
+func NewBinaryOp(operator string) BinaryOp {
+	return BinaryOp{operator: operator}
 }
 
 func (bo BinaryOp) WithOperands(left, right Node) BinaryOp {
-	bo.Operands = []Node{left, right}
+	bo.operands = []Node{left, right}
 	return bo
 }
 
 func (bo BinaryOp) WithMatcher(vm VectorMatcher) BinaryOp {
-	bo.Matcher = &vm
+	bo.matcher = &vm
 	return bo
 }
 
 var _ Node = (*BinaryOp)(nil)
 
 func (bo BinaryOp) String() string {
-	return fmt.Sprintf("%s %s %s", bo.Operands[0].String(), bo.Self(), bo.Operands[1].String())
+	return fmt.Sprintf("%s %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
 }
 
 func (bo BinaryOp) Self() string {
-	s := bo.Operator
-	if bo.Matcher != nil {
-		s += " " + bo.Matcher.String()
+	s := bo.operator
+	if bo.matcher != nil {
+		s += " " + bo.matcher.String()
 	}
 	return s
 }
 
 func (bo BinaryOp) Children() []Node {
-	return bo.Operands
+	return bo.operands
 }
 
 type VectorMatcher struct {
-	Keyword string // on/ignoring
-	Labels  []string
-	Group   *GroupModifier // 可选
+	keyword string // on/ignoring
+	labels  []string
+	group   *GroupModifier // 可选
+}
+
+func NewVectorMatcher(keyword string, labels ...string) VectorMatcher {
+	return VectorMatcher{keyword: keyword, labels: labels}
 }
 
 func (vm VectorMatcher) String() string {
-	s := fmt.Sprintf("%s(%s)", vm.Keyword, strings.Join(vm.Labels, ", "))
-	if vm.Group != nil {
-		s += " " + vm.Group.String()
+	s := fmt.Sprintf("%s(%s)", vm.keyword, strings.Join(vm.labels, ", "))
+	if vm.group != nil {
+		s += " " + vm.group.String()
 	}
 	return s
 }
 
+func (vm VectorMatcher) WithLabels(labels ...string) VectorMatcher {
+	vm.labels = append(vm.labels, labels...)
+	return vm
+}
+
 func (vm VectorMatcher) WithGroupLeft(labels ...string) VectorMatcher {
-	vm.Group = &GroupModifier{Left: true, Labels: labels}
+	vm.group = &GroupModifier{left: true, labels: labels}
 	return vm
 }
 
 func (vm VectorMatcher) WithGroupRight(labels ...string) VectorMatcher {
-	vm.Group = &GroupModifier{Left: false, Labels: labels}
+	vm.group = &GroupModifier{left: false, labels: labels}
 	return vm
 }
 
 type GroupModifier struct {
-	Left   bool
-	Labels []string
+	left   bool
+	labels []string
 }
 
 func (gm GroupModifier) String() string {
 	var group string
-	if gm.Left {
+	if gm.left {
 		group = "group_left"
 	} else {
 		group = "group_right"
 	}
-	if len(gm.Labels) == 0 {
+	if len(gm.labels) == 0 {
 		return group
 	}
-	return fmt.Sprintf("%s(%s)", group, strings.Join(gm.Labels, ", "))
+	return fmt.Sprintf("%s(%s)", group, strings.Join(gm.labels, ", "))
 }
 
 // 聚合操作符
 type AggregationOp struct {
-	Operator  string             // sum, min, max, avg, topk, count, quantile ...
-	Operand   Node               // aggregate a single instant vector
-	Clause    *AggregationClause // 可选，比如 by(code)
-	Parameter *Scalar            // only required for count_values, quantile, topk and bottomk.
+	operator  string             // sum, min, max, avg, topk, count, quantile ...
+	operand   Node               // aggregate a single instant vector
+	clause    *AggregationClause // 可选，比如 by(code)
+	parameter *Scalar            // only required for count_values, quantile, topk and bottomk.
+}
+
+func NewAggregationOp(operator string) AggregationOp {
+	return AggregationOp{operator: operator}
 }
 
 func (ao AggregationOp) SetOperand(operand Node) AggregationOp {
-	ao.Operand = operand
+	ao.operand = operand
 	return ao
 }
 
 func (ao AggregationOp) WithByClause(labels ...string) AggregationOp {
-	ao.Clause = &AggregationClause{Keyword: "by", Labels: labels}
+	ao.clause = &AggregationClause{keyword: "by", labels: labels}
 	return ao
 }
 
 func (ao AggregationOp) WithWithoutClause(labels ...string) AggregationOp {
-	ao.Clause = &AggregationClause{Keyword: "without", Labels: labels}
+	ao.clause = &AggregationClause{keyword: "without", labels: labels}
 	return ao
 }
 
 func (ao AggregationOp) WithClause(keyword string, labels ...string) AggregationOp {
-	ao.Clause = &AggregationClause{Keyword: keyword, Labels: labels}
+	ao.clause = &AggregationClause{keyword: keyword, labels: labels}
 	return ao
 }
 
 func (ao AggregationOp) WithParameter(param Scalar) AggregationOp {
-	ao.Parameter = &param
+	ao.parameter = &param
 	return ao
 }
 
 var _ Node = (*AggregationOp)(nil)
 
 func (ao AggregationOp) Self() string {
-	s := ao.Operator
-	if ao.Clause != nil {
-		s += " " + ao.Clause.String()
+	s := ao.operator
+	if ao.clause != nil {
+		s += " " + ao.clause.String()
 	}
 	return s
 }
 
 func (ao AggregationOp) String() string {
-	if ao.Parameter != nil {
-		return fmt.Sprintf("%s (%f, %s)", ao.Self(), *ao.Parameter, ao.Operand.String())
+	if ao.parameter != nil {
+		return fmt.Sprintf("%s (%f, %s)", ao.Self(), *ao.parameter, ao.operand.String())
 	}
-	return fmt.Sprintf("%s (%s)", ao.Self(), ao.Operand.String())
+	return fmt.Sprintf("%s (%s)", ao.Self(), ao.operand.String())
 }
 
 func (ao AggregationOp) Children() []Node {
-	return []Node{ao.Operand}
+	return []Node{ao.operand}
 }
 
 type AggregationClause struct {
-	Keyword string
-	Labels  []string
+	keyword string  // by, without
+	labels  []string
 }
 
 func (ac AggregationClause) String() string {
-	return fmt.Sprintf("%s (%s)", ac.Keyword, strings.Join(ac.Labels, ", "))
+	return fmt.Sprintf("%s (%s)", ac.keyword, strings.Join(ac.labels, ", "))
 }
 
 // 浮点数标量
