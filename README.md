@@ -20,20 +20,21 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/chenlujjj/promql"
 )
 
 func main() {
-	q := promql.NewFunc("histogram_quantile").WithParameters(
-		promql.Scalar(0.9),
-		promql.NewAggregationOp("sum").
-			WithByClause("le", "method", "path").
-			SetOperand(
-				promql.NewFunc("rate").WithParameters(
-					promql.TSSelector{Name: "demo_api_request_duration_seconds_bucket"}.WithDuration("5m"),
-				),
-			),
-	)
+	q := promql.NewBinaryOp("/").
+		WithMatcher(promql.NewVectorMatcher("on", "job").WithGroupLeft()).
+		WithOperands(
+			promql.NewAggregationOp("sum").
+				WithByClause("job", "mode").
+				SetOperand(promql.NewFunc("rate").WithParameters(promql.TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
+			promql.NewAggregationOp("sum").
+				WithByClause("job").
+				SetOperand(promql.NewFunc("rate").WithParameters(promql.TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
+		)
 	fmt.Println(q.String())
 }
 ```
