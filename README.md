@@ -7,13 +7,17 @@
 
 ## Install
 
-`go get -u github.com/chenlujjj/promql`
+```shell
+go get -u github.com/chenlujjj/promql
+```
 
 ## Usage
 
 例如想生成这条promql：
 
-```sum by (job, mode) (rate(node_cpu_seconds_total[1m])) / on(job) group_left sum by (job) (rate(node_cpu_seconds_total[1m]))```
+```
+sum by (job, mode) (rate(node_cpu_seconds_total[1m])) / on(job) group_left sum by (job) (rate(node_cpu_seconds_total[1m]))
+```
 
 ```go
 package main
