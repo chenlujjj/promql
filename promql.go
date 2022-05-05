@@ -321,30 +321,34 @@ func (p Parenthesis) String() string {
 	return fmt.Sprintf("(%s)", p.Node.String())
 }
 
-// --- 浮点数标量 Scalar, see https://prometheus.io/docs/prometheus/latest/querying/basics/#float-literals
+// --- Scalar, see https://prometheus.io/docs/prometheus/latest/querying/basics/#float-literals
 
-type Scalar float64
+type Scalar Node
 
-var _ Node = (*Scalar)(nil)
+// --- 浮点数表示的标量
 
-func (s Scalar) String() string {
-	return s.Self()
+type Float float64
+
+var _ Scalar = (*Float)(nil)
+
+func (f Float) String() string {
+	return f.Self()
 }
 
-// TODO: 妥善处理显示的精度
-func (s Scalar) Self() string {
-	return fmt.Sprintf("%.4f", s)
+// TODO: 处理显示的精度
+func (f Float) Self() string {
+	return fmt.Sprintf("%.4f", f)
 }
 
-func (s Scalar) Children() []Node {
+func (f Float) Children() []Node {
 	return nil
 }
 
-// --- 整型标量
+// --- 整型表示的标量
 
 type Int int
 
-var _ Node = (*Int)(nil)
+var _ Scalar = (*Int)(nil)
 
 func (i Int) String() string {
 	return i.Self()

@@ -7,7 +7,7 @@ import (
 func TestPromql(t *testing.T) {
 	expect := "histogram_quantile(0.9000, sum by (le, method, path) (rate(demo_api_request_duration_seconds_bucket[5m])))"
 	q1 := NewFunc("histogram_quantile").WithParameters(
-		Scalar(0.9),
+		Float(0.9),
 		NewAggregationOp("sum").
 			By("le", "method", "path").
 			SetOperand(
