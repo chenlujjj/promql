@@ -100,6 +100,10 @@ type Label struct {
 	Matcher string // = != =~ !~
 }
 
+func NewLabel(key, matcher, value string) Label {
+	return Label{Key: key, Value: value, Matcher: matcher}
+}
+
 func (l Label) String() string {
 	return fmt.Sprintf(`%s%s"%s"`, l.Key, l.Matcher, l.Value)
 }
