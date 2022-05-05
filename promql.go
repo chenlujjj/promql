@@ -196,6 +196,14 @@ func NewVectorMatcher(keyword string, labels ...string) VectorMatcher {
 	return VectorMatcher{keyword: keyword, labels: labels}
 }
 
+func NewOnVectorMatcher(labels ...string) VectorMatcher {
+	return VectorMatcher{keyword: "on", labels: labels}
+}
+
+func NewIgnoringVectorMatcher(labels ...string) VectorMatcher {
+	return VectorMatcher{keyword: "ignoring", labels: labels}
+}
+
 func (vm VectorMatcher) String() string {
 	s := fmt.Sprintf("%s(%s)", vm.keyword, strings.Join(vm.labels, ", "))
 	if vm.group != nil {

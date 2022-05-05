@@ -20,7 +20,7 @@ func TestPromql(t *testing.T) {
 
 	expect = "sum by (job, mode) (rate(node_cpu_seconds_total[1m])) / on(job) group_left sum by (job) (rate(node_cpu_seconds_total[1m]))"
 	q2 := NewBinaryOp("/").
-		WithMatcher(NewVectorMatcher("on", "job").WithGroupLeft()).
+		WithMatcher(NewOnVectorMatcher("job").WithGroupLeft()).
 		WithOperands(
 			NewAggregationOp("sum").
 				WithByClause("job", "mode").
