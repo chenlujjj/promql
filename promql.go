@@ -167,12 +167,6 @@ func (bo BinaryOp) WithMatcher(vm VectorMatcher) BinaryOp {
 var _ Node = (*BinaryOp)(nil)
 
 func (bo BinaryOp) String() string {
-	if _, ok := bo.operands[0].(BinaryOp); ok {
-		return fmt.Sprintf("(%s) %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
-	}
-	if _, ok := bo.operands[1].(BinaryOp); ok {
-		return fmt.Sprintf("%s %s (%s)", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
-	}
 	return fmt.Sprintf("%s %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
 }
 
@@ -267,12 +261,12 @@ func (ao AggregationOp) SetOperand(operand Node) AggregationOp {
 	return ao
 }
 
-func (ao AggregationOp) WithByClause(labels ...string) AggregationOp {
+func (ao AggregationOp) By(labels ...string) AggregationOp {
 	ao.clause = &AggregationClause{keyword: "by", labels: labels}
 	return ao
 }
 
-func (ao AggregationOp) WithWithoutClause(labels ...string) AggregationOp {
+func (ao AggregationOp) Without(labels ...string) AggregationOp {
 	ao.clause = &AggregationClause{keyword: "without", labels: labels}
 	return ao
 }
@@ -315,6 +309,16 @@ type AggregationClause struct {
 
 func (ac AggregationClause) String() string {
 	return fmt.Sprintf("%s (%s)", ac.keyword, strings.Join(ac.labels, ", "))
+}
+
+// --- Wrap origin node with parenthesis
+
+type Parenthesis struct {
+	Node
+}
+
+func (p Parenthesis) String() string {
+	return fmt.Sprintf("(%s)", p.Node.String())
 }
 
 // --- 浮点数标量 Scalar, see https://prometheus.io/docs/prometheus/latest/querying/basics/#float-literals

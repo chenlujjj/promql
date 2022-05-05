@@ -9,7 +9,7 @@ func TestPromql(t *testing.T) {
 	q1 := NewFunc("histogram_quantile").WithParameters(
 		Scalar(0.9),
 		NewAggregationOp("sum").
-			WithByClause("le", "method", "path").
+			By("le", "method", "path").
 			SetOperand(
 				NewFunc("rate").WithParameters(TSSelector{Name: "demo_api_request_duration_seconds_bucket"}.WithDuration("5m")),
 			),
@@ -23,10 +23,10 @@ func TestPromql(t *testing.T) {
 		WithMatcher(NewOnVectorMatcher("job").WithGroupLeft()).
 		WithOperands(
 			NewAggregationOp("sum").
-				WithByClause("job", "mode").
+				By("job", "mode").
 				SetOperand(NewFunc("rate").WithParameters(TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
 			NewAggregationOp("sum").
-				WithByClause("job").
+				By("job").
 				SetOperand(NewFunc("rate").WithParameters(TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
 		)
 	if actual := q2.String(); actual != expect {
@@ -34,16 +34,16 @@ func TestPromql(t *testing.T) {
 	}
 
 	expect = `1 - (sum by (instance) (increase(node_cpu_seconds_total{mode="idle", instance="master"}[1m])) / sum by (instance) (increase(node_cpu_seconds_total{instance="master"}[1m])))`
-	q3 := NewBinaryOp("-").WithOperands(Int(1), NewBinaryOp("/").WithOperands(
-		NewAggregationOp("sum").WithByClause("instance").
+	q3 := NewBinaryOp("-").WithOperands(Int(1), Parenthesis{NewBinaryOp("/").WithOperands(
+		NewAggregationOp("sum").By("instance").
 			SetOperand(NewFunc("increase").WithParameters(TSSelector{Name: "node_cpu_seconds_total"}.WithLabels(
 				NewLabel("mode", "=", "idle"), NewLabel("instance", "=", "master")).WithDuration("1m"))),
 
-		NewAggregationOp("sum").WithByClause("instance").
+		NewAggregationOp("sum").By("instance").
 			SetOperand(NewFunc("increase").WithParameters(TSSelector{Name: "node_cpu_seconds_total"}.WithLabels(
 				NewLabel("instance", "=", "master"),
 			).WithDuration("1m"))),
-		))
+	)})
 
 	if actual := q3.String(); actual != expect {
 		t.Fatalf("expect: %s, actual: %s", expect, actual)
