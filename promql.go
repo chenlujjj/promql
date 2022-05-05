@@ -19,7 +19,27 @@ type Node interface {
 	Children() []Node
 }
 
-var _ Node = (*TSSelector)(nil)
+type ConstantStringNode struct {
+	constant string
+}
+
+func NewConstantStringNode(constantString string) ConstantStringNode {
+	return ConstantStringNode{constant: constantString}
+}
+
+func (m ConstantStringNode) String() string {
+	return m.Self()
+}
+
+func (m ConstantStringNode) Self() string {
+	return m.constant
+}
+
+func (m ConstantStringNode) Children() []Node {
+	return nil
+}
+
+var _ Node = (*ConstantStringNode)(nil)
 
 // time series selector
 type TSSelector struct {
@@ -28,6 +48,8 @@ type TSSelector struct {
 	duration string // 可选, 比如5m
 	offset   string // 可选，比如offset 5m
 }
+
+var _ Node = (*TSSelector)(nil)
 
 func (m TSSelector) String() string {
 	return m.Self()
@@ -140,6 +162,12 @@ func (bo BinaryOp) WithMatcher(vm VectorMatcher) BinaryOp {
 var _ Node = (*BinaryOp)(nil)
 
 func (bo BinaryOp) String() string {
+	if _, ok := bo.operands[0].(BinaryOp); ok {
+		return fmt.Sprintf("(%s) %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
+	}
+	if _, ok := bo.operands[1].(BinaryOp); ok {
+		return fmt.Sprintf("%s %s (%s)", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
+	}
 	return fmt.Sprintf("%s %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
 }
 
@@ -265,7 +293,7 @@ func (ao AggregationOp) Children() []Node {
 }
 
 type AggregationClause struct {
-	keyword string  // by, without
+	keyword string // by, without
 	labels  []string
 }
 
