@@ -42,8 +42,8 @@ var _ Node = (*ConstantStringNode)(nil)
 // --- time series selector, see https://prometheus.io/docs/prometheus/latest/querying/basics/#time-series-selectors
 
 type TSSelector struct {
-	Name     string
-	Labels   []Label
+	name     string
+	labels   []Label
 	duration string // 可选, 比如5m
 	offset   string // 可选，比如offset 5m
 }
@@ -55,13 +55,13 @@ func (m TSSelector) String() string {
 }
 
 func (m TSSelector) Self() string {
-	if m.Name == "" && len(m.Labels) == 0 {
+	if m.name == "" && len(m.labels) == 0 {
 		panic("metric name and labels cannot be both empty")
 	}
-	s := m.Name
-	if len(m.Labels) != 0 {
-		labelStrings := make([]string, 0, len(m.Labels))
-		for _, label := range m.Labels {
+	s := m.name
+	if len(m.labels) != 0 {
+		labelStrings := make([]string, 0, len(m.labels))
+		for _, label := range m.labels {
 			labelStrings = append(labelStrings, label.String())
 		}
 		s += fmt.Sprintf("{%s}", strings.Join(labelStrings, ", "))
@@ -79,17 +79,24 @@ func (m TSSelector) Children() []Node {
 	return nil
 }
 
-func (m TSSelector) WithLabels(labels ...Label) TSSelector {
-	m.Labels = append(m.Labels, labels...)
+func NewTSSelector(name string, labels ...Label) TSSelector {
+	return TSSelector{
+		name:   name,
+		labels: labels,
+	}
+}
+
+func (m TSSelector) Labels(labels ...Label) TSSelector {
+	m.labels = append(m.labels, labels...)
 	return m
 }
 
-func (m TSSelector) WithDuration(duration string) TSSelector {
+func (m TSSelector) Duration(duration string) TSSelector {
 	m.duration = duration
 	return m
 }
 
-func (m TSSelector) WithOffset(offset string) TSSelector {
+func (m TSSelector) Offset(offset string) TSSelector {
 	m.offset = offset
 	return m
 }
@@ -119,7 +126,7 @@ func NewFunc(fun string, parameters ...Node) Func {
 	return Func{fun: fun, parameters: parameters}
 }
 
-func (f Func) WithParameters(params ...Node) Func {
+func (f Func) Parameters(params ...Node) Func {
 	f.parameters = append(f.parameters, params...)
 	return f
 }
@@ -154,12 +161,12 @@ func NewBinaryOp(operator string) BinaryOp {
 	return BinaryOp{operator: operator}
 }
 
-func (bo BinaryOp) WithOperands(left, right Node) BinaryOp {
+func (bo BinaryOp) Operands(left, right Node) BinaryOp {
 	bo.operands = []Node{left, right}
 	return bo
 }
 
-func (bo BinaryOp) WithMatcher(vm VectorMatcher) BinaryOp {
+func (bo BinaryOp) Matcher(vm VectorMatcher) BinaryOp {
 	bo.matcher = &vm
 	return bo
 }
@@ -210,17 +217,17 @@ func (vm VectorMatcher) String() string {
 	return s
 }
 
-func (vm VectorMatcher) WithLabels(labels ...string) VectorMatcher {
+func (vm VectorMatcher) Labels(labels ...string) VectorMatcher {
 	vm.labels = append(vm.labels, labels...)
 	return vm
 }
 
-func (vm VectorMatcher) WithGroupLeft(labels ...string) VectorMatcher {
+func (vm VectorMatcher) GroupLeft(labels ...string) VectorMatcher {
 	vm.group = &GroupModifier{left: true, labels: labels}
 	return vm
 }
 
-func (vm VectorMatcher) WithGroupRight(labels ...string) VectorMatcher {
+func (vm VectorMatcher) GroupRight(labels ...string) VectorMatcher {
 	vm.group = &GroupModifier{left: false, labels: labels}
 	return vm
 }
@@ -256,7 +263,7 @@ func NewAggregationOp(operator string) AggregationOp {
 	return AggregationOp{operator: operator}
 }
 
-func (ao AggregationOp) SetOperand(operand Node) AggregationOp {
+func (ao AggregationOp) Operand(operand Node) AggregationOp {
 	ao.operand = operand
 	return ao
 }
@@ -268,11 +275,6 @@ func (ao AggregationOp) By(labels ...string) AggregationOp {
 
 func (ao AggregationOp) Without(labels ...string) AggregationOp {
 	ao.clause = &AggregationClause{keyword: "without", labels: labels}
-	return ao
-}
-
-func (ao AggregationOp) WithClause(keyword string, labels ...string) AggregationOp {
-	ao.clause = &AggregationClause{keyword: keyword, labels: labels}
 	return ao
 }
 

@@ -30,14 +30,14 @@ import (
 
 func main() {
 	q := promql.NewBinaryOp("/").
-		WithMatcher(promql.NewVectorMatcher("on", "job").WithGroupLeft()).
-		WithOperands(
+		Matcher(promql.NewOnVectorMatcher("job").GroupLeft()).
+		Operands(
 			promql.NewAggregationOp("sum").
-				WithByClause("job", "mode").
-				SetOperand(promql.NewFunc("rate").WithParameters(promql.TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
+				By("job", "mode").
+				Operand(promql.NewFunc("rate").Parameters(promql.NewTSSelector("node_cpu_seconds_total").Duration("1m"))),
 			promql.NewAggregationOp("sum").
-				WithByClause("job").
-				SetOperand(promql.NewFunc("rate").WithParameters(promql.TSSelector{Name: "node_cpu_seconds_total"}.WithDuration("1m"))),
+				By("job").
+				Operand(promql.NewFunc("rate").Parameters(promql.NewTSSelector("node_cpu_seconds_total").Duration("1m"))),
 		)
 	fmt.Println(q.String())
 }
