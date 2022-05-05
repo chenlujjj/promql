@@ -9,15 +9,13 @@ type Stringer interface {
 	String() string
 }
 
-type EmptyString struct{}
-
-func (es EmptyString) Stringer() string { return "" }
-
 type Node interface {
 	Stringer
 	Self() string
 	Children() []Node
 }
+
+// --- constant node
 
 type ConstantStringNode struct {
 	constant string
@@ -41,7 +39,8 @@ func (m ConstantStringNode) Children() []Node {
 
 var _ Node = (*ConstantStringNode)(nil)
 
-// time series selector
+// --- time series selector, see https://prometheus.io/docs/prometheus/latest/querying/basics/#time-series-selectors
+
 type TSSelector struct {
 	Name     string
 	Labels   []Label
@@ -63,7 +62,7 @@ func (m TSSelector) Self() string {
 	if len(m.Labels) != 0 {
 		labelStrings := make([]string, 0, len(m.Labels))
 		for _, label := range m.Labels {
-			labelStrings = append(labelStrings, label.Stringer())
+			labelStrings = append(labelStrings, label.String())
 		}
 		s += fmt.Sprintf("{%s}", strings.Join(labelStrings, ", "))
 	}
@@ -98,14 +97,15 @@ func (m TSSelector) WithOffset(offset string) TSSelector {
 type Label struct {
 	Key     string
 	Value   string
-	Matcher string // = != =~
+	Matcher string // = != =~ !~
 }
 
-func (l Label) Stringer() string {
+func (l Label) String() string {
 	return fmt.Sprintf(`%s%s"%s"`, l.Key, l.Matcher, l.Value)
 }
 
-// 函数， 比如 rate
+// --- query functions, see https://prometheus.io/docs/prometheus/latest/querying/functions
+
 type Func struct {
 	fun        string
 	parameters []Node // 长度不定， 1， 2，等
@@ -138,7 +138,8 @@ func (f Func) Children() []Node {
 	return f.parameters
 }
 
-// 二元操作符
+// --- 二元操作符, binary operators, see https://prometheus.io/docs/prometheus/latest/querying/operators/#binary-operators
+
 type BinaryOp struct {
 	operator string         // + - * / == != > < >= <= and or unless
 	operands []Node         // 长度为2
@@ -182,6 +183,8 @@ func (bo BinaryOp) Self() string {
 func (bo BinaryOp) Children() []Node {
 	return bo.operands
 }
+
+// --- See https://prometheus.io/docs/prometheus/latest/querying/operators/#vector-matching
 
 type VectorMatcher struct {
 	keyword string // on/ignoring
@@ -234,7 +237,8 @@ func (gm GroupModifier) String() string {
 	return fmt.Sprintf("%s(%s)", group, strings.Join(gm.labels, ", "))
 }
 
-// 聚合操作符
+// --- 聚合操作符, see https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators
+
 type AggregationOp struct {
 	operator  string             // sum, min, max, avg, topk, count, quantile ...
 	operand   Node               // aggregate a single instant vector
@@ -301,7 +305,8 @@ func (ac AggregationClause) String() string {
 	return fmt.Sprintf("%s (%s)", ac.keyword, strings.Join(ac.labels, ", "))
 }
 
-// 浮点数标量
+// --- 浮点数标量 Scalar, see https://prometheus.io/docs/prometheus/latest/querying/basics/#float-literals
+
 type Scalar float64
 
 var _ Node = (*Scalar)(nil)
