@@ -331,3 +331,21 @@ func (s Scalar) Self() string {
 func (s Scalar) Children() []Node {
 	return nil
 }
+
+// --- 整型标量
+
+type Int int
+
+var _ Node = (*Int)(nil)
+
+func (i Int) String() string {
+	return i.Self()
+}
+
+func (i Int) Self() string {
+	return fmt.Sprintf("%d", i)
+}
+
+func (i Int) Children() []Node {
+	return nil
+}

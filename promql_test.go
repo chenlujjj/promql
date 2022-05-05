@@ -34,7 +34,7 @@ func TestPromql(t *testing.T) {
 	}
 
 	expect = `1 - (sum by (instance) (increase(node_cpu_seconds_total{mode="idle", instance="master"}[1m])) / sum by (instance) (increase(node_cpu_seconds_total{instance="master"}[1m])))`
-	q3 := NewBinaryOp("-").WithOperands(NewConstantStringNode("1"), NewBinaryOp("/").WithOperands(
+	q3 := NewBinaryOp("-").WithOperands(Int(1), NewBinaryOp("/").WithOperands(
 		NewAggregationOp("sum").WithByClause("instance").
 			SetOperand(NewFunc("increase").WithParameters(TSSelector{Name: "node_cpu_seconds_total"}.WithLabels(Label{
 				Key:     "mode",
