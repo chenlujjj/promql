@@ -152,9 +152,9 @@ func (f Func) Children() []Node {
 // --- 二元操作符, binary operators, see https://prometheus.io/docs/prometheus/latest/querying/operators/#binary-operators
 
 type BinaryOp struct {
-	operator string         // + - * / == != > < >= <= and or unless
-	operands []Node         // 长度为2
-	matcher  *VectorMatcher // 可选
+	operator    string         // + - * / == != > < >= <= and or unless
+	left, right Node           // operands
+	matcher     *VectorMatcher // 可选
 }
 
 func NewBinaryOp(operator string) BinaryOp {
@@ -162,7 +162,18 @@ func NewBinaryOp(operator string) BinaryOp {
 }
 
 func (bo BinaryOp) Operands(left, right Node) BinaryOp {
-	bo.operands = []Node{left, right}
+	bo.left = left
+	bo.right = right
+	return bo
+}
+
+func (bo BinaryOp) Left(l Node) BinaryOp {
+	bo.left = l
+	return bo
+}
+
+func (bo BinaryOp) Right(r Node) BinaryOp {
+	bo.right = r
 	return bo
 }
 
@@ -174,7 +185,7 @@ func (bo BinaryOp) Matcher(vm VectorMatcher) BinaryOp {
 var _ Node = (*BinaryOp)(nil)
 
 func (bo BinaryOp) String() string {
-	return fmt.Sprintf("%s %s %s", bo.operands[0].String(), bo.Self(), bo.operands[1].String())
+	return fmt.Sprintf("%s %s %s", bo.left.String(), bo.Self(), bo.right.String())
 }
 
 func (bo BinaryOp) Self() string {
@@ -186,7 +197,7 @@ func (bo BinaryOp) Self() string {
 }
 
 func (bo BinaryOp) Children() []Node {
-	return bo.operands
+	return []Node{bo.left, bo.right}
 }
 
 // --- See https://prometheus.io/docs/prometheus/latest/querying/operators/#vector-matching
