@@ -1,3 +1,3 @@
-module github.com/chenlujjj/promql
+module github.com/huanghantao/promql
 
 go 1.15
